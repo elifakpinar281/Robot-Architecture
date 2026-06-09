@@ -1,0 +1,5 @@
+float64 linear_speed
+float64 angular_speed
+float64 distance_front
+float64 distance_left
+float64 distance_right
