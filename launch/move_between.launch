@@ -13,7 +13,7 @@
     args="-urdf -model turtlebot3 -x 0 -y 0 -z 0.0 -param robot_description"/>
 
   <node pkg="turtlebot3_control" type="status_publisher" name="status_publisher" output="screen"/>
-  <node pkg="turtlebot3_control" type="logger_node"      name="logger_node"      output="screen"/>
-  <node pkg="turtlebot3_control" type="camera_node"      name="camera_node"      output="screen"/>
-  <node pkg="turtlebot3_control" type="move_between"     name="move_between"     output="screen"/>
+  <node pkg="turtlebot3_control" type="logger_node" name="logger_node" output="screen"/>
+  <node pkg="turtlebot3_control" type="camera_node" name="camera_node" output="screen"/>
+  <node pkg="turtlebot3_control" type="move_between" name="move_between" output="screen"/>
 </launch>

@@ -11,7 +11,9 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   cv_bridge
   std_srvs
+  roslib
 )
+
 find_package(OpenCV REQUIRED)
 
 add_message_files(

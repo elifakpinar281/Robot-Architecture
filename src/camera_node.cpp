@@ -16,8 +16,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 
     // Bildverarbeitung
     cv::Mat grau, kanten;
-    cv::cvtColor(bild, grau, cv::COLOR_BGR2GRAY);   // in Graustufen
-    cv::Canny(grau, kanten, 100, 200);              // Kantendetektion
+    cv::cvtColor(bild, grau, cv::COLOR_BGR2GRAY); // in Graustufen
+    cv::Canny(grau, kanten, 100, 200); // Kantendetektion
 
     // Anzeige
     cv::imshow("Kamera (original)", bild);

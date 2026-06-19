@@ -1,5 +1,7 @@
 <launch>
-  <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_world.launch"/>
+  <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_world.launch">
+    <arg name="model" value="waffle_pi"/>
+  </include>
   <node pkg="turtlebot3_control" type="status_publisher" name="status_publisher" output="screen"/>
   <node pkg="turtlebot3_control" type="logger_node" name="logger_node" output="screen"/>
   <node pkg="turtlebot3_control" type="camera_node" name="camera_node" output="screen"/>

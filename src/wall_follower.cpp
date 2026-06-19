@@ -30,9 +30,9 @@ double minRange(const sensor_msgs::LaserScan::ConstPtr& msg, int center_deg, int
 }
 
 void scanCallback(const sensor_msgs::LaserScan::ConstPtr& msg) {
-    dist_front = minRange(msg,   0, 15);   // ca. 345..15 Grad
-    dist_right = minRange(msg, 270, 15);   // ca. 255..285 Grad
-    dist_front_right = minRange(msg, 315, 15);   // ca. 300..330 Grad
+    dist_front = minRange(msg,   0, 15); // ca. 345..15 Grad
+    dist_right = minRange(msg, 270, 15); // ca. 255..285 Grad
+    dist_front_right = minRange(msg, 315, 15); // ca. 300..330 Grad
 }
 
 int main(int argc, char** argv) {
@@ -42,12 +42,12 @@ int main(int argc, char** argv) {
     ros::Publisher pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
     ROS_INFO("wall_follower gestartet");
 
-    const double WAND_ABSTAND = 0.3;    // gewuenschter Abstand zur Wand (m)
-    const double TOLERANZ     = 0.1;    // Pufferzone um den Wunschabstand
-    const double FRONT_STOP   = 0.5;    // Wand voraus -> auf der Stelle drehen
-    const double SPEED        = 0.15;   // Vorwaertsgeschwindigkeit (m/s)
-    const double DREHEN       = 0.5;    // Drehen in der Ecke (rad/s)
-    const double KORREKTUR    = 0.3;    // sanftes Nachlenken (rad/s)
+    const double WAND_ABSTAND = 0.3; // gewuenschter Abstand zur Wand (m)
+    const double TOLERANZ     = 0.1; // Pufferzone um den Wunschabstand
+    const double FRONT_STOP   = 0.5; // Wand voraus -> auf der Stelle drehen
+    const double SPEED        = 0.15; // Vorwaertsgeschwindigkeit (m/s)
+    const double DREHEN       = 0.5; // Drehen in der Ecke (rad/s)
+    const double KORREKTUR    = 0.3; // sanftes Nachlenken (rad/s)
 
     ros::Rate rate(10);
     while (ros::ok()) {
