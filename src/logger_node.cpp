@@ -6,6 +6,7 @@
 #include <ctime>
 #include <sys/stat.h>
 
+// Logging-Service ist hier im logger_node integriert
 std::ofstream logfile;
 bool logging_enabled = true;
 
