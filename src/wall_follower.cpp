@@ -8,63 +8,79 @@ double dist_front = std::numeric_limits<double>::infinity();
 double dist_right = std::numeric_limits<double>::infinity();
 double dist_front_right = std::numeric_limits<double>::infinity();
 
-double minRange(const sensor_msgs::LaserScan::ConstPtr& msg, int center_deg, int window_deg) {
-    int n = (int)msg->ranges.size();
-    if (n == 0) return std::numeric_limits<double>::infinity();
+double window_deg = 15.0;
+
+double minRange(const sensor_msgs::LaserScan::ConstPtr& msg, double center_deg, double window_deg) {
+    const int N = (int)msg->ranges.size();
+    if (N == 0) return std::numeric_limits<double>::infinity();
+
+    const double inc = msg->angle_increment;
+    double center_rad = center_deg * M_PI / 180.0;
+    int half       = std::max(1, (int)std::lround((window_deg * M_PI / 180.0) / inc));
+    int center_idx = (int)std::lround((center_rad - msg->angle_min) / inc);
 
     double kleinster = std::numeric_limits<double>::infinity();
-    for (int offset = -window_deg; offset <= window_deg; ++offset) {
-        int deg = center_deg + offset;
-        int grad = ((deg % 360) + 360) % 360;
-        int index = (grad * n) / 360;
-        if (index < 0 || index >= n) continue;
-
-        double d = msg->ranges[index];
-        if (std::isfinite(d) && d >= msg->range_min && d <= msg->range_max) {
-            if (d < kleinster) {
-                kleinster = d;
-            }
+    for (int o = -half; o <= half; ++o) {
+        int idx = (((center_idx + o) % N) + N) % N;
+        double d = msg->ranges[idx];
+        if (std::isfinite(d) && d >= msg->range_min && d <= msg->range_max && d < kleinster) {
+            kleinster = d;
         }
     }
     return kleinster;
 }
 
 void scanCallback(const sensor_msgs::LaserScan::ConstPtr& msg) {
-    dist_front = minRange(msg,   0, 15); // ca. 345..15 Grad
-    dist_right = minRange(msg, 270, 15); // ca. 255..285 Grad
-    dist_front_right = minRange(msg, 315, 15); // ca. 300..330 Grad
+    dist_front = minRange(msg, 0, window_deg);
+    dist_right = minRange(msg, 270, window_deg);
+    dist_front_right = minRange(msg, 315, window_deg);
 }
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "wall_follower");
     ros::NodeHandle nh;
-    ros::Subscriber sub = nh.subscribe("/scan", 10, scanCallback);
-    ros::Publisher pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel", 10);
-    ROS_INFO("wall_follower gestartet");
+    ros::NodeHandle pnh("~");
 
-    const double WAND_ABSTAND = 0.3; // gewuenschter Abstand zur Wand (m)
-    const double TOLERANZ     = 0.1; // Pufferzone um den Wunschabstand
-    const double FRONT_STOP   = 0.5; // Wand voraus -> auf der Stelle drehen
-    const double SPEED        = 0.15; // Vorwaertsgeschwindigkeit (m/s)
-    const double DREHEN       = 0.5; // Drehen in der Ecke (rad/s)
-    const double KORREKTUR    = 0.3; // sanftes Nachlenken (rad/s)
+    double wand_abstand, toleranz, front_stop, suchabstand, speed, drehen, korrektur, rate_hz;
+    std::string scan_topic, cmd_topic;
+    pnh.param("wand_abstand", wand_abstand, 0.3); 
+    pnh.param("toleranz", toleranz, 0.1);
+    pnh.param("front_stop", front_stop, 0.5);
+    pnh.param("suchabstand", suchabstand,  1.2);
+    pnh.param("speed", speed, 0.15);
+    pnh.param("drehen", drehen, 0.5);
+    pnh.param("korrektur", korrektur, 0.3);
+    pnh.param("window_deg", window_deg, 15.0);
+    pnh.param("rate_hz", rate_hz, 10.0);
+    pnh.param<std::string>("scan_topic", scan_topic, "/scan");
+    pnh.param<std::string>("cmd_topic", cmd_topic, "/cmd_vel");
 
-    ros::Rate rate(10);
+    ros::Subscriber sub = nh.subscribe(scan_topic, 10, scanCallback);
+    ros::Publisher pub = nh.advertise<geometry_msgs::Twist>(cmd_topic, 10);
+    ROS_INFO("wall_follower gestartet (abstand=%.2f m, speed=%.2f m/s)", wand_abstand, speed);
+
+    ros::Rate rate(rate_hz);
     while (ros::ok()) {
         ros::spinOnce();
         geometry_msgs::Twist cmd;
 
-        if (dist_front < FRONT_STOP || dist_front_right < WAND_ABSTAND) {
+        if (dist_front < front_stop || dist_front_right < wand_abstand) {
+            // Wand voraus / Ecke -> stehenbleiben und wegdrehen
             cmd.linear.x  = 0.0;
-            cmd.angular.z = DREHEN;
-        } else if (dist_right > WAND_ABSTAND + TOLERANZ) {
-            cmd.linear.x  = SPEED;
-            cmd.angular.z = -KORREKTUR;
-        } else if (dist_right < WAND_ABSTAND - TOLERANZ) {
-            cmd.linear.x  = SPEED;
-            cmd.angular.z = KORREKTUR;
+            cmd.angular.z = drehen;
+        } else if (dist_right > suchabstand) {
+            cmd.linear.x  = speed;
+            cmd.angular.z = 0.0;
+        } else if (dist_right > wand_abstand + toleranz) {
+            // Wand sichtbar, aber zu weit -> sanft ranlenken
+            cmd.linear.x  = speed;
+            cmd.angular.z = -korrektur;
+        } else if (dist_right < wand_abstand - toleranz) {
+            // zu nah -> sanft weglenken
+            cmd.linear.x  = speed;
+            cmd.angular.z = korrektur;
         } else {
-            cmd.linear.x  = SPEED;
+            cmd.linear.x  = speed;
             cmd.angular.z = 0.0;
         }
 

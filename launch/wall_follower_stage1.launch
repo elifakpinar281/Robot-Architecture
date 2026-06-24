@@ -1,0 +1,33 @@
+<launch>
+  <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_stage_1.launch">
+    <arg name="model" value="waffle_pi"/>
+  </include>
+
+  <node pkg="turtlebot3_control" type="status_publisher" name="status_publisher" output="screen">
+    <param name="rate_hz" value="10"/>
+    <param name="window_deg" value="5"/>
+  </node>
+
+  <node pkg="turtlebot3_control" type="logger_node" name="logger_node" output="screen">
+    <param name="start_enabled" value="true"/>
+  </node>
+
+  <node pkg="turtlebot3_control" type="camera_node" name="camera_node" output="screen">
+    <param name="image_topic" value="/camera/rgb/image_raw"/>
+    <param name="canny_low" value="100"/>
+    <param name="canny_high" value="200"/>
+    <param name="show_windows" value="true"/>
+  </node>
+
+  <node pkg="turtlebot3_control" type="wall_follower" name="wall_follower" output="screen">
+    <param name="wand_abstand" value="0.3"/>
+    <param name="toleranz" value="0.1"/>
+    <param name="front_stop" value="0.5"/>
+    <param name="suchabstand"  value="1.2"/>
+    <param name="speed" value="0.15"/>
+    <param name="drehen" value="0.5"/>
+    <param name="korrektur" value="0.3"/>
+    <param name="window_deg" value="15"/>
+    <param name="rate_hz" value="10"/>
+  </node>
+</launch>
