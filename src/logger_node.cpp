@@ -4,13 +4,12 @@
 #include <fstream>
 #include <ros/package.h>
 #include <ctime>
+#include <sys/stat.h>
 
 std::ofstream logfile;
-bool logging_enabled = true;  // Logging initial an
+bool logging_enabled = true;
 
-// Service: schaltet das Logging an/aus
-bool setLogging(std_srvs::SetBool::Request& req,
-                std_srvs::SetBool::Response& res) {
+bool setLogging(std_srvs::SetBool::Request& req, std_srvs::SetBool::Response& res) {
     logging_enabled = req.data;
     res.success = true;
     res.message = req.data ? "Logging an" : "Logging aus";
@@ -18,37 +17,54 @@ bool setLogging(std_srvs::SetBool::Request& req,
     return true;
 }
 
-// Wird bei jeder RobotStatus-Nachricht aufgerufen
 void statusCallback(const turtlebot3_control::RobotStatus::ConstPtr& msg) {
-    if (!logging_enabled) return;  // bei "aus" nichts schreiben
-    logfile << ros::Time::now().toSec() << ","
-            << msg->linear_speed   << ","
-            << msg->angular_speed  << ","
+    if (!logging_enabled) return; 
+
+    // Zeitstempel aus der Nachricht (Messzeit)
+    double stamp = msg->header.stamp.toSec();
+    logfile << stamp << ","
+            << msg->linear_speed << ","
+            << msg->angular_speed << ","
             << msg->distance_front << ","
-            << msg->distance_left  << ","
+            << msg->distance_left << ","
             << msg->distance_right << std::endl;
 }
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "logger_node");
     ros::NodeHandle nh;
+    ros::NodeHandle pnh("~");
+
+    std::string status_topic, service_name, log_dir;
+    bool start_enabled;
+    pnh.param<std::string>("status_topic", status_topic, "/robot_status");
+    pnh.param<std::string>("service_name", service_name, "/set_logging");
+    pnh.param<std::string>("log_dir", log_dir, ros::package::getPath("turtlebot3_control") + "/logs");
+    pnh.param("start_enabled", start_enabled, true);
+    logging_enabled = start_enabled;
+
+    mkdir(log_dir.c_str(), 0775); // schlaegt fehl, falls schon vorhanden (man kann trotzdem ausführen)
 
     time_t now = time(0);
     struct tm* t = localtime(&now);
-    char fname[32];
-    strftime(fname, sizeof(fname), "log_%d_%m_%Y.csv", t);   // -> z.B. log_19_06_2026.csv
+    char fname[48];
+    strftime(fname, sizeof(fname), "log_%d_%m_%Y_%H%M%S.csv", t);
+    std::string path = log_dir + "/" + fname;
 
-    std::string path = ros::package::getPath("turtlebot3_control") + "/logs/" + fname;
-    logfile.open(path.c_str());         
-    logfile << std::fixed; // keine 1.78e+09-Schreibweise mehr
+    logfile.open(path.c_str());
+    if (!logfile.is_open()) { 
+        ROS_ERROR("Logdatei konnte nicht geoeffnet werden: %s", path.c_str());
+        return 1;
+    }
+    logfile << std::fixed;
     logfile.precision(3);
     logfile << "timestamp,linear_speed,angular_speed,"
                "distance_front,distance_left,distance_right" << std::endl;
 
-    ros::Subscriber sub = nh.subscribe("/robot_status", 10, statusCallback);
-    ros::ServiceServer srv = nh.advertiseService("/set_logging", setLogging);
+    ros::Subscriber sub = nh.subscribe(status_topic, 10, statusCallback);
+    ros::ServiceServer srv = nh.advertiseService(service_name, setLogging);
 
-    ROS_INFO("logger_node gestartet");
+    ROS_INFO("logger_node gestartet -> %s (logging %s)", path.c_str(), logging_enabled ? "an" : "aus");
     ros::spin();
     logfile.close();
     return 0;

@@ -12,8 +12,35 @@
   <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf"
     args="-urdf -model turtlebot3 -x 0 -y 0 -z 0.0 -param robot_description"/>
 
-  <node pkg="turtlebot3_control" type="status_publisher" name="status_publisher" output="screen"/>
-  <node pkg="turtlebot3_control" type="logger_node" name="logger_node" output="screen"/>
-  <node pkg="turtlebot3_control" type="camera_node" name="camera_node" output="screen"/>
-  <node pkg="turtlebot3_control" type="move_between" name="move_between" output="screen"/>
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
+
+  <node pkg="turtlebot3_control" type="status_publisher" name="status_publisher" output="screen">
+    <param name="rate_hz" value="10"/>
+    <param name="window_deg" value="5"/>
+  </node>
+
+  <node pkg="turtlebot3_control" type="logger_node" name="logger_node" output="screen">
+    <param name="start_enabled" value="true"/>
+  </node>
+
+  <node pkg="turtlebot3_control" type="camera_node" name="camera_node" output="screen">
+    <param name="image_topic" value="/camera/rgb/image_raw"/>
+    <param name="canny_low" value="100"/>
+    <param name="canny_high" value="200"/>
+    <param name="show_windows" value="true"/>
+  </node>
+
+  <node pkg="turtlebot3_control" type="move_between" name="move_between" output="screen">
+    <param name="front_sector_deg" value="90"/>
+    <param name="cluster_gap" value="0.20"/>
+    <param name="min_points" value="3"/>
+    <param name="stop_distance" value="0.5"/>
+    <param name="clear_factor" value="2.0"/>
+    <param name="center_tol_deg" value="8"/>
+    <param name="forward_speed" value="0.15"/>
+    <param name="turn_speed" value="0.6"/>
+    <param name="search_turn" value="0.4"/>
+    <param name="steer_gain" value="1.2"/>
+    <param name="rate_hz" value="20"/>
+  </node>
 </launch>

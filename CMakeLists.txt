@@ -55,3 +55,16 @@ add_dependencies(wall_follower ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPO
 add_executable(move_between src/move_between.cpp)
 target_link_libraries(move_between ${catkin_LIBRARIES})
 add_dependencies(move_between ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+install(TARGETS
+  status_publisher
+  logger_node
+  camera_node
+  wall_follower
+  move_between
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(DIRECTORY launch worlds
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)

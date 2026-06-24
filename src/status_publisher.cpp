@@ -3,28 +3,15 @@
 #include <geometry_msgs/Twist.h>
 #include "turtlebot3_control/RobotStatus.h"
 #include <cmath>
+#include <limits>
 
-double linear_speed  = 0.0; // aus /cmd_vel
-double angular_speed  = 0.0; // aus /cmd_vel
-double distance_front = 0.0; // aus /scan
-double distance_left  = 0.0;
-double distance_right = 0.0;
-
-double readRange(const sensor_msgs::LaserScan::ConstPtr& msg, int index) {
-    if (index < 0 || index >= (int)msg->ranges.size()) {
-        return msg->range_max;
-    }
-    double d = msg->ranges[index];
-    if (!std::isfinite(d) || d < msg->range_min || d > msg->range_max) {
-        return msg->range_max;
-    }
-    return d;
-}
+// aus /cmd_vel
+double linear_speed  = 0.0;
+double angular_speed = 0.0;
+sensor_msgs::LaserScan::ConstPtr latest_scan;
 
 void scanCallback(const sensor_msgs::LaserScan::ConstPtr& msg) {
-    distance_front = readRange(msg, 0);
-    distance_left  = readRange(msg, 90);
-    distance_right = readRange(msg, 270);
+    latest_scan = msg;
 }
 
 void cmdCallback(const geometry_msgs::Twist::ConstPtr& msg) {
@@ -32,30 +19,67 @@ void cmdCallback(const geometry_msgs::Twist::ConstPtr& msg) {
     angular_speed = msg->angular.z;
 }
 
+double minRange(const sensor_msgs::LaserScan::ConstPtr& msg, double center_deg, double window_rad) {
+    const int N = (int)msg->ranges.size();
+    if (N == 0) return msg->range_max;
+
+    const double inc = msg->angle_increment;
+    double center_rad = center_deg * M_PI / 180.0;
+    int half = std::max(1, (int)std::lround(window_rad / inc));
+    int center_idx = (int)std::lround((center_rad - msg->angle_min) / inc);
+
+    double best = std::numeric_limits<double>::infinity();
+    for (int o = -half; o <= half; ++o) {
+        int idx = (((center_idx + o) % N) + N) % N;
+        double r = msg->ranges[idx];
+        if (std::isfinite(r) && r >= msg->range_min && r <= msg->range_max && r < best) {
+            best = r;
+        }
+    }
+    if (!std::isfinite(best)) return msg->range_max;
+    return best;
+}
+
 int main(int argc, char** argv) {
     ros::init(argc, argv, "status_publisher");
     ros::NodeHandle nh;
+    ros::NodeHandle pnh("~"); // privater Handle
 
-    // Zwei Subscriber: einer für den LiDAR, einer für den Fahrbefehl.
-    ros::Subscriber scan_sub = nh.subscribe("/scan", 10, scanCallback);
-    ros::Subscriber cmd_sub  = nh.subscribe("/cmd_vel", 10, cmdCallback);
+    double rate_hz, window_deg, front_deg, left_deg, right_deg;
+    std::string scan_topic, cmd_topic, status_topic, frame_id;
+    pnh.param("rate_hz", rate_hz, 10.0);
+    pnh.param("window_deg", window_deg, 5.0);
+    pnh.param("front_deg", front_deg, 0.0);
+    pnh.param("left_deg", left_deg, 90.0);
+    pnh.param("right_deg", right_deg, 270.0);
+    pnh.param<std::string>("scan_topic", scan_topic, "/scan");
+    pnh.param<std::string>("cmd_topic", cmd_topic, "/cmd_vel");
+    pnh.param<std::string>("status_topic", status_topic, "/robot_status");
+    pnh.param<std::string>("frame_id", frame_id, "base_scan");
 
-    // Publisher für unsere eigene Nachricht.
-    ros::Publisher pub =
-        nh.advertise<turtlebot3_control::RobotStatus>("/robot_status", 10);
+    double window_rad = window_deg * M_PI / 180.0;
 
-    ROS_INFO("status_publisher gestartet");
+    ros::Subscriber scan_sub = nh.subscribe(scan_topic, 10, scanCallback);
+    ros::Subscriber cmd_sub = nh.subscribe(cmd_topic, 10, cmdCallback);
+    ros::Publisher pub = nh.advertise<turtlebot3_control::RobotStatus>(status_topic, 10);
 
-    ros::Rate rate(10);
+    ROS_INFO("status_publisher gestartet (rate=%.1f Hz, window=%.1f deg)", rate_hz, window_deg);
+
+    ros::Rate rate(rate_hz);
     while (ros::ok()) {
         ros::spinOnce();
 
         turtlebot3_control::RobotStatus status;
-        status.linear_speed   = linear_speed;
-        status.angular_speed  = angular_speed;
-        status.distance_front = distance_front;
-        status.distance_left  = distance_left;
-        status.distance_right = distance_right;
+        status.header.stamp = ros::Time::now(); // Zeitstempel der Messung
+        status.header.frame_id = frame_id;
+        status.linear_speed = linear_speed;
+        status.angular_speed = angular_speed;
+
+        if (latest_scan) {
+            status.distance_front = minRange(latest_scan, front_deg, window_rad);
+            status.distance_left = minRange(latest_scan, left_deg,  window_rad);
+            status.distance_right = minRange(latest_scan, right_deg, window_rad);
+        }
 
         pub.publish(status);
         rate.sleep();

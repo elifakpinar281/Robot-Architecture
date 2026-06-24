@@ -20,7 +20,7 @@
   <depend>std_srvs</depend>
   <depend>roslib</depend>
 
-  <!-- nur zur Laufzeit der Simulation nötig -->
+  <!-- nur zur Laufzeit der Simulation noetig -->
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>gazebo_ros</exec_depend>
   <exec_depend>xacro</exec_depend>

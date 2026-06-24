@@ -16,7 +16,7 @@ double minRange(const sensor_msgs::LaserScan::ConstPtr& msg, double center_deg, 
 
     const double inc = msg->angle_increment;
     double center_rad = center_deg * M_PI / 180.0;
-    int half       = std::max(1, (int)std::lround((window_deg * M_PI / 180.0) / inc));
+    int half = std::max(1, (int)std::lround((window_deg * M_PI / 180.0) / inc));
     int center_idx = (int)std::lround((center_rad - msg->angle_min) / inc);
 
     double kleinster = std::numeric_limits<double>::infinity();
@@ -41,12 +41,11 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
 
-    double wand_abstand, toleranz, front_stop, suchabstand, speed, drehen, korrektur, rate_hz;
+    double wand_abstand, toleranz, front_stop, speed, drehen, korrektur, rate_hz;
     std::string scan_topic, cmd_topic;
     pnh.param("wand_abstand", wand_abstand, 0.3); 
     pnh.param("toleranz", toleranz, 0.1);
     pnh.param("front_stop", front_stop, 0.5);
-    pnh.param("suchabstand", suchabstand,  1.2);
     pnh.param("speed", speed, 0.15);
     pnh.param("drehen", drehen, 0.5);
     pnh.param("korrektur", korrektur, 0.3);
@@ -56,7 +55,7 @@ int main(int argc, char** argv) {
     pnh.param<std::string>("cmd_topic", cmd_topic, "/cmd_vel");
 
     ros::Subscriber sub = nh.subscribe(scan_topic, 10, scanCallback);
-    ros::Publisher pub = nh.advertise<geometry_msgs::Twist>(cmd_topic, 10);
+    ros::Publisher  pub = nh.advertise<geometry_msgs::Twist>(cmd_topic, 10);
     ROS_INFO("wall_follower gestartet (abstand=%.2f m, speed=%.2f m/s)", wand_abstand, speed);
 
     ros::Rate rate(rate_hz);
@@ -65,18 +64,12 @@ int main(int argc, char** argv) {
         geometry_msgs::Twist cmd;
 
         if (dist_front < front_stop || dist_front_right < wand_abstand) {
-            // Wand voraus / Ecke -> stehenbleiben und wegdrehen
             cmd.linear.x  = 0.0;
             cmd.angular.z = drehen;
-        } else if (dist_right > suchabstand) {
-            cmd.linear.x  = speed;
-            cmd.angular.z = 0.0;
         } else if (dist_right > wand_abstand + toleranz) {
-            // Wand sichtbar, aber zu weit -> sanft ranlenken
             cmd.linear.x  = speed;
             cmd.angular.z = -korrektur;
         } else if (dist_right < wand_abstand - toleranz) {
-            // zu nah -> sanft weglenken
             cmd.linear.x  = speed;
             cmd.angular.z = korrektur;
         } else {
