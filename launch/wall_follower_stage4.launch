@@ -1,7 +1,4 @@
 <launch>
-  <!-- Der Roboter findet ueber den Such-Modus eine Wand und folgt ihr entlang der Ecken. -->
-  <!-- Funktioniert noch nicht :c -->
-
   <include file="$(find turtlebot3_gazebo)/launch/turtlebot3_stage_4.launch">
     <arg name="model" value="waffle_pi"/>
   </include>
@@ -26,11 +23,10 @@
     <param name="wand_abstand" value="0.3"/>
     <param name="toleranz" value="0.1"/>
     <param name="front_stop" value="0.5"/>
-    <param name="suchabstand"  value="1.2"/>
     <param name="speed" value="0.15"/>
     <param name="drehen" value="0.5"/>
-    <param name="korrektur"value="0.3"/>
+    <param name="korrektur" value="0.3"/>
     <param name="window_deg" value="15"/>
-    <param name="rate_hz"value="10"/>
+    <param name="rate_hz" value="10"/>
   </node>
 </launch>

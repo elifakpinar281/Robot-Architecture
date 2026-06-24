@@ -23,7 +23,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     if (show_windows) {
         cv::imshow("Kamera (original)", bild);
         cv::imshow("Kanten", kanten);
-        cv::waitKey(1);  
+        cv::waitKey(1);
+    }
 }
 
 int main(int argc, char** argv) {

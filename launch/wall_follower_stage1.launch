@@ -23,7 +23,6 @@
     <param name="wand_abstand" value="0.3"/>
     <param name="toleranz" value="0.1"/>
     <param name="front_stop" value="0.5"/>
-    <param name="suchabstand"  value="1.2"/>
     <param name="speed" value="0.15"/>
     <param name="drehen" value="0.5"/>
     <param name="korrektur" value="0.3"/>
