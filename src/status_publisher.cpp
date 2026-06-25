@@ -69,6 +69,8 @@ int main(int argc, char** argv) {
     while (ros::ok()) {
         ros::spinOnce();
 
+        if (!latest_scan) { rate.sleep(); continue; }  // erst publizieren, wenn Scan da
+
         turtlebot3_control::RobotStatus status;
         status.header.stamp = ros::Time::now(); // Zeitstempel der Messung
         status.header.frame_id = frame_id;
