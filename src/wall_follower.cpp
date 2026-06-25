@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
 
-    double wand_abstand, toleranz, front_stop, speed, drehen, korrektur, rate_hz;
+    double wand_abstand, toleranz, front_stop, speed, drehen, korrektur, rate_hz, wall_range;
     std::string scan_topic, cmd_topic;
     pnh.param("wand_abstand", wand_abstand, 0.3); 
     pnh.param("toleranz", toleranz, 0.1);
@@ -51,6 +51,7 @@ int main(int argc, char** argv) {
     pnh.param("korrektur", korrektur, 0.3);
     pnh.param("window_deg", window_deg, 15.0);
     pnh.param("rate_hz", rate_hz, 10.0);
+    pnh.param("wall_range", wall_range, 1.0);
     pnh.param<std::string>("scan_topic", scan_topic, "/scan");
     pnh.param<std::string>("cmd_topic", cmd_topic, "/cmd_vel");
 
@@ -66,6 +67,9 @@ int main(int argc, char** argv) {
         if (dist_front < front_stop || dist_front_right < wand_abstand) {
             cmd.linear.x  = 0.0;
             cmd.angular.z = drehen;
+        } else if (dist_right > wall_range) {
+            cmd.linear.x  = speed;
+            cmd.angular.z = 0.0;
         } else if (dist_right > wand_abstand + toleranz) {
             cmd.linear.x  = speed;
             cmd.angular.z = -korrektur;
