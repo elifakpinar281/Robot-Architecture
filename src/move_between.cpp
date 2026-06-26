@@ -4,6 +4,10 @@
 #include <cmath>
 #include <limits>
 #include <vector>
+#include <csignal>
+
+volatile std::sig_atomic_t g_stop = 0;
+void onSigint(int) { g_stop = 1; }
 
 double FRONT_SECTOR;
 double CLUSTER_GAP;
@@ -87,7 +91,8 @@ bool pickAhead(const std::vector<Cluster>& clusters, Cluster& out) {
 }
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "move_between");
+    ros::init(argc, argv, "move_between", ros::init_options::NoSigintHandler);
+    std::signal(SIGINT, onSigint);
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
 
@@ -120,7 +125,7 @@ int main(int argc, char** argv) {
     ros::Time turn_start;
     ros::Rate rate(rate_hz);
 
-    while (ros::ok()) {
+    while (ros::ok() && !g_stop) {
         ros::spinOnce();
         geometry_msgs::Twist cmd;
 
@@ -136,7 +141,7 @@ int main(int argc, char** argv) {
                 cmd.angular.z = SEARCH_TURN;
             } else if (ahead.distance > STOP_DISTANCE) {
                 cmd.linear.x  = FORWARD_SPEED;
-                cmd.angular.z = STEER_GAIN * ahead.bearing; // Objekt mittig halten
+                cmd.angular.z = STEER_GAIN * ahead.bearing;
             } else {
                 state = TURN; cleared = false; turn_start = ros::Time::now();
             }
@@ -161,5 +166,11 @@ int main(int argc, char** argv) {
         pub.publish(cmd);
         rate.sleep();
     }
+
+    geometry_msgs::Twist stop;
+    pub.publish(stop);
+    ros::spinOnce();
+    ros::Duration(0.1).sleep();
+    ros::shutdown();
     return 0;
 }
