@@ -3,6 +3,10 @@
 #include <geometry_msgs/Twist.h>
 #include <cmath>
 #include <limits>
+#include <csignal>
+
+volatile std::sig_atomic_t g_stop = 0;
+void onSigint(int) { g_stop = 1; }
 
 double dist_front = std::numeric_limits<double>::infinity();
 double dist_right = std::numeric_limits<double>::infinity();
@@ -37,7 +41,8 @@ void scanCallback(const sensor_msgs::LaserScan::ConstPtr& msg) {
 }
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "wall_follower");
+    ros::init(argc, argv, "wall_follower", ros::init_options::NoSigintHandler);
+    std::signal(SIGINT, onSigint);
     ros::NodeHandle nh;
     ros::NodeHandle pnh("~");
 
@@ -60,9 +65,17 @@ int main(int argc, char** argv) {
     ROS_INFO("wall_follower gestartet (abstand=%.2f m, speed=%.2f m/s)", wand_abstand, speed);
 
     ros::Rate rate(rate_hz);
-    while (ros::ok()) {
+    while (ros::ok() && !g_stop) {
         ros::spinOnce();
         geometry_msgs::Twist cmd;
+
+        // Warten bis der erste Scan da ist
+        // Sonst würde inf als "frei" durchgehen und der Roboter fährt blind los
+        if (!std::isfinite(dist_front) && !std::isfinite(dist_right) && !std::isfinite(dist_front_right)) {
+            pub.publish(cmd);
+            rate.sleep();
+            continue;
+        }
 
         if (dist_front < front_stop || dist_front_right < wand_abstand) {
             cmd.linear.x  = 0.0;
@@ -84,5 +97,11 @@ int main(int argc, char** argv) {
         pub.publish(cmd);
         rate.sleep();
     }
+
+    geometry_msgs::Twist stop;
+    pub.publish(stop);
+    ros::spinOnce();
+    ros::Duration(0.1).sleep();
+    ros::shutdown();
     return 0;
 }

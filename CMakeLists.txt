@@ -27,7 +27,7 @@ generate_messages(
 )
 
 catkin_package(
-  CATKIN_DEPENDS roscpp std_msgs sensor_msgs geometry_msgs message_runtime cv_bridge std_srvs
+  CATKIN_DEPENDS roscpp std_msgs sensor_msgs geometry_msgs message_runtime cv_bridge std_srvs roslib
 )
 
 include_directories(
