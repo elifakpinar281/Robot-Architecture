@@ -69,19 +69,17 @@ int main(int argc, char** argv) {
     while (ros::ok()) {
         ros::spinOnce();
 
-        if (!latest_scan) { rate.sleep(); continue; }  // erst publizieren, wenn Scan da
+        if (!latest_scan) { rate.sleep(); continue; } 
 
         turtlebot3_control::RobotStatus status;
-        status.header.stamp = ros::Time::now(); // Zeitstempel der Messung
+        status.header.stamp = ros::Time::now();
         status.header.frame_id = frame_id;
         status.linear_speed = linear_speed;
         status.angular_speed = angular_speed;
 
-        if (latest_scan) {
-            status.distance_front = minRange(latest_scan, front_deg, window_rad);
-            status.distance_left = minRange(latest_scan, left_deg,  window_rad);
-            status.distance_right = minRange(latest_scan, right_deg, window_rad);
-        }
+        status.distance_front = minRange(latest_scan, front_deg, window_rad);
+        status.distance_left = minRange(latest_scan, left_deg,  window_rad);
+        status.distance_right = minRange(latest_scan, right_deg, window_rad);
 
         pub.publish(status);
         rate.sleep();

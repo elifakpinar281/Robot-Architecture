@@ -392,6 +392,13 @@ gone" before "B is found", the robot is guaranteed to turn away from the box it
 came from and towards the other one. A timeout of one full rotation is a safety
 net so it can never spin forever.
 
+**Both behaviour nodes stop the robot on shutdown.** When a behaviour node is
+killed with Ctrl-C, the main loop would simply exit and leave the last velocity
+command standing on `/cmd_vel`, so the robot would keep driving on its own.
+To avoid this, both `wall_follower` and `move_between` install their own SIGINT
+handler (`NoSigintHandler` plus `std::signal`), leave the loop cleanly through a
+stop flag, and publish a zero `Twist` before they shut down.
+
 **CSV instead of JSON for the log.** The assignment allowed either. We chose CSV
 because the logger appends one line per message as a stream. CSV is made for
 exactly that: open the file once, write a header, then keep adding rows. A JSON
